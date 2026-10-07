@@ -1,0 +1,28 @@
+# Tik voor automatisch mailen in beheer.nexmen.nl: inbox nalopen (reacties, onbestelbaar) en binnen het
+# verzendvenster (ma-vr 08:00-17:00 Amsterdam, dat controleert het beheer zelf) één mail versturen.
+name: Automatisch mailen
+
+on:
+  schedule:
+    # Elk half uur op werkdagen, 06:00-15:30 UTC (= 08:00-17:30 zomertijd, 07:00-16:30 wintertijd).
+    - cron: "0,30 6-15 * * 1-5"
+    # Daarbuiten elke twee uur alleen de inbox (het beheer verstuurt dan niets).
+    - cron: "15 */2 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: mail-tik
+  cancel-in-progress: false
+
+jobs:
+  tik:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Beheer aanroepen
+        env:
+          MAIL_CRON_SECRET: ${{ secrets.MAIL_CRON_SECRET }}
+        run: |
+          curl -sS --fail-with-body --max-time 90 \
+            -H "Authorization: Bearer $MAIL_CRON_SECRET" \
+            https://beheer.nexmen.nl/api/cron/mail
