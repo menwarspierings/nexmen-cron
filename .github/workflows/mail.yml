@@ -1,28 +1,44 @@
-# Tik voor automatisch mailen in beheer.nexmen.nl: inbox nalopen (reacties, onbestelbaar) en binnen het
-# verzendvenster (ma-vr 08:00-17:00 Amsterdam, dat controleert het beheer zelf) één mail versturen.
+# Klok voor automatisch mailen in beheer.nexmen.nl: inbox nalopen (reacties, onbestelbaar) en binnen het verzendvenster
+# (ma-vr 09:00-16:00 Amsterdam, dat bepaalt het beheer zelf) de geplande mails versturen.
+#
+# GitHub slaat geplande runs vaak uren over. Daarom is dit een lus: één run tikt elke 20 minuten, ruim 5,5 uur lang,
+# en start daarna zichzelf opnieuw. De geplande runs hieronder zijn alleen de reserve als de lus ooit stopt; dankzij
+# de concurrency-groep draait er altijd maar één tegelijk (een nieuwe wacht tot de vorige klaar is).
+# Openbare repo: de logs tonen alleen de statuscode, nooit namen of antwoorden van het beheer.
 name: Automatisch mailen
 
 on:
   schedule:
-    # Elk half uur op werkdagen, 06:00-15:30 UTC (= 08:00-17:30 zomertijd, 07:00-16:30 wintertijd).
-    - cron: "0,30 6-15 * * 1-5"
-    # Daarbuiten elk uur alleen de inbox (het beheer verstuurt dan niets), zodat reacties snel binnenkomen.
-    - cron: "15 * * * *"
+    - cron: "7 */3 * * *"
   workflow_dispatch: {}
 
 concurrency:
   group: mail-tik
   cancel-in-progress: false
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   tik:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 350
     steps:
-      - name: Beheer aanroepen
+      - name: Elke 20 minuten tikken
         env:
           MAIL_CRON_SECRET: ${{ secrets.MAIL_CRON_SECRET }}
         run: |
-          curl -sS --fail-with-body --max-time 90 \
-            -H "Authorization: Bearer $MAIL_CRON_SECRET" \
-            https://beheer.nexmen.nl/api/cron/mail
+          end=$(( $(date +%s) + 335 * 60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 \
+              -H "Authorization: Bearer $MAIL_CRON_SECRET" \
+              https://beheer.nexmen.nl/api/cron/mail || echo "000")
+            echo "$(date -u +%H:%M) UTC -> $code"
+            sleep 1200
+          done
+      - name: Lus opnieuw starten
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run mail.yml -R "$GITHUB_REPOSITORY"
