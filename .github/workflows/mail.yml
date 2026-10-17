@@ -1,5 +1,5 @@
 # Klok voor automatisch mailen in beheer.nexmen.nl: inbox nalopen (reacties, onbestelbaar) en binnen het verzendvenster
-# (ma-vr 09:00-16:00 Amsterdam, dat bepaalt het beheer zelf) de geplande mails versturen.
+# (elke dag 09:00-16:00 Amsterdam, ook in het weekend; dat bepaalt het beheer zelf) de geplande mails versturen.
 #
 # GitHub slaat geplande runs vaak uren over. Daarom is dit een lus: één run tikt elke 20 minuten, ruim 5,5 uur lang,
 # en start daarna zichzelf opnieuw. De geplande runs hieronder zijn alleen de reserve als de lus ooit stopt; dankzij
