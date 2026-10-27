@@ -31,7 +31,7 @@ jobs:
         run: |
           end=$(( $(date +%s) + 335 * 60 ))
           while [ "$(date +%s)" -lt "$end" ]; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 \
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 300 \
               -H "Authorization: Bearer $MAIL_CRON_SECRET" \
               https://beheer.nexmen.nl/api/cron/mail || echo "000")
             echo "$(date -u +%H:%M) UTC -> $code"
